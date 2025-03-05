@@ -92,3 +92,14 @@ body,
   left: 0;
   top: 9px;
 }
+
+.fps-counter {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #0af;
+  border-radius: 5px;
+  padding: 5px 10px;
+}

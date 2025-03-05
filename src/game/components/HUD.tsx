@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useGameState } from "../utils/GameContext";
 
 const HUD = () => {
-  const { health, currentWeapon, switchWeapon, speed, velocity } =
+  const { health, currentWeapon, switchWeapon, speed, velocity, fps } =
     useGameState();
 
   useEffect(() => {
@@ -45,7 +45,7 @@ const HUD = () => {
         <div>Speed: {speed} m/s</div>
         <div>Direction: {getDirectionText()}</div>
       </div>
-      <div className="crosshair"></div>
+      <div className="hud-element fps-counter">FPS: {fps}</div>
     </div>
   );
 };

@@ -8,9 +8,11 @@ interface GameState {
   currentWeapon: WeaponType;
   speed: number;
   velocity: Vector3;
+  fps: number;
   switchWeapon: () => void;
   updateSpeed: (newSpeed: number) => void;
   updateVelocity: (newVelocity: Vector3) => void;
+  updateFPS: (newFPS: number) => void;
 }
 
 const GameContext = createContext<GameState | undefined>(undefined);
@@ -32,6 +34,7 @@ export const GameProvider = ({ children }: GameProviderProps) => {
   const [currentWeapon, setCurrentWeapon] = useState<WeaponType>("machineGun");
   const [speed, setSpeed] = useState(0);
   const [velocity, setVelocity] = useState(new Vector3(0, 0, 0));
+  const [fps, setFPS] = useState(0);
 
   const switchWeapon = () => {
     setCurrentWeapon((prev) =>
@@ -47,14 +50,20 @@ export const GameProvider = ({ children }: GameProviderProps) => {
     setVelocity(newVelocity);
   };
 
+  const updateFPS = (newFPS: number) => {
+    setFPS(newFPS);
+  };
+
   const value = {
     health,
     currentWeapon,
     speed,
     velocity,
+    fps,
     switchWeapon,
     updateSpeed,
     updateVelocity,
+    updateFPS,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

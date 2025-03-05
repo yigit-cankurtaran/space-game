@@ -1,19 +1,48 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Physics } from "@react-three/cannon";
-import { useThree } from "@react-three/fiber";
+import { useThree, useFrame } from "@react-three/fiber";
 import {
   PointLight,
   AmbientLight,
   DirectionalLight,
   HemisphereLight,
+  Clock,
+  Group,
+  BoxGeometry,
+  MeshBasicMaterial,
+  Mesh,
+  BackSide,
 } from "three";
 import Spacecraft from "../models/Spacecraft";
 import SolarSystem from "./SolarSystem";
 import { useGameState } from "../utils/GameContext";
 
+// Match the boundary size with the one in Spacecraft.tsx
+const BOUNDARY_SIZE = 500;
+
 const GameScene = () => {
   const { scene } = useThree();
-  const { switchWeapon } = useGameState();
+  const { switchWeapon, updateFPS } = useGameState();
+  const clock = useRef(new Clock());
+  const frameCount = useRef(0);
+  const lastFpsUpdate = useRef(0);
+  const spacecraftRef = useRef<Group>(null);
+
+  // Calculate FPS
+  useFrame(() => {
+    frameCount.current++;
+    const elapsedTime = clock.current.getElapsedTime();
+
+    // Update FPS every 0.5 seconds
+    if (elapsedTime - lastFpsUpdate.current >= 0.5) {
+      const fps = Math.round(
+        frameCount.current / (elapsedTime - lastFpsUpdate.current)
+      );
+      updateFPS(fps);
+      frameCount.current = 0;
+      lastFpsUpdate.current = elapsedTime;
+    }
+  });
 
   // Set up keyboard controls
   useEffect(() => {
@@ -86,16 +115,50 @@ const GameScene = () => {
     };
   }, [scene]);
 
+  // Add boundary visualization
+  useEffect(() => {
+    // Create a large cube to represent the boundary
+    const boundaryGeometry = new BoxGeometry(
+      BOUNDARY_SIZE * 2,
+      BOUNDARY_SIZE * 2,
+      BOUNDARY_SIZE * 2
+    );
+
+    // Create a material that's visible from the inside
+    const boundaryMaterial = new MeshBasicMaterial({
+      color: 0x0088ff,
+      side: BackSide,
+      transparent: true,
+      opacity: 0.05,
+      wireframe: true,
+    });
+
+    const boundaryMesh = new Mesh(boundaryGeometry, boundaryMaterial);
+    scene.add(boundaryMesh);
+
+    return () => {
+      scene.remove(boundaryMesh);
+      boundaryGeometry.dispose();
+      boundaryMaterial.dispose();
+    };
+  }, [scene]);
+
   return (
     <>
       <Physics
-        gravity={[0, 0, 0]} // No gravity in space
+        gravity={[0, 0, 0]}
         defaultContactMaterial={{
           friction: 0,
           restitution: 0.7,
+          contactEquationStiffness: 1e8,
+          contactEquationRelaxation: 3,
         }}
+        iterations={20}
+        allowSleep={false}
+        broadphase="SAP"
+        stepSize={1 / 120}
       >
-        <Spacecraft position={[0, 0, 0]} />
+        <Spacecraft ref={spacecraftRef} />
         <SolarSystem />
       </Physics>
     </>
