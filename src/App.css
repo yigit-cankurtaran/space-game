@@ -1,42 +1,94 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #000;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.game-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: #0af;
+  font-family: "Orbitron", sans-serif;
+  text-shadow: 0 0 5px rgba(0, 170, 255, 0.7);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.hud-element {
+  position: absolute;
+  padding: 10px;
 }
 
-.card {
-  padding: 2em;
+.weapon-indicator {
+  bottom: 20px;
+  right: 20px;
+  font-size: 1.2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #0af;
+  border-radius: 5px;
+  padding: 10px 15px;
 }
 
-.read-the-docs {
-  color: #888;
+.health-indicator {
+  top: 20px;
+  left: 20px;
+  font-size: 1.2rem;
+}
+
+.speed-indicator {
+  top: 20px;
+  right: 20px;
+  font-size: 1.2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #0af;
+  border-radius: 5px;
+  padding: 10px 15px;
+}
+
+.crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.crosshair::before,
+.crosshair::after {
+  content: "";
+  position: absolute;
+  background-color: rgba(0, 170, 255, 0.7);
+}
+
+.crosshair::before {
+  width: 2px;
+  height: 20px;
+  left: 9px;
+  top: 0;
+}
+
+.crosshair::after {
+  width: 20px;
+  height: 2px;
+  left: 0;
+  top: 9px;
 }
