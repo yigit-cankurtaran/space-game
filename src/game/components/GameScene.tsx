@@ -12,16 +12,89 @@ import {
   MeshBasicMaterial,
   Mesh,
   BackSide,
+  SphereGeometry,
+  BufferGeometry,
+  Float32BufferAttribute,
+  PointsMaterial,
+  Points,
+  TextureLoader,
+  CubeTextureLoader,
+  Vector3,
 } from "three";
 import Spacecraft from "../models/Spacecraft";
 import SolarSystem from "./SolarSystem";
 import { useGameState } from "../utils/GameContext";
 
-// Match the boundary size with the one in Spacecraft.tsx
-const BOUNDARY_SIZE = 500;
+// Create a true skybox that doesn't move with the camera
+const Skybox = () => {
+  const { scene } = useThree();
+
+  useEffect(() => {
+    // Create a large cube for the skybox
+    const size = 5000;
+    const skyboxGeometry = new BoxGeometry(size, size, size);
+
+    // Create a material that's visible from the inside
+    const skyboxMaterial = new MeshBasicMaterial({
+      color: 0x000000,
+      side: BackSide,
+    });
+
+    // Create the skybox mesh
+    const skybox = new Mesh(skyboxGeometry, skyboxMaterial);
+    scene.add(skybox);
+
+    // Add stars to the skybox
+    const starCount = 5000;
+    const starGeometry = new BufferGeometry();
+    const starPositions = [];
+    const starSizes = [];
+
+    // Generate random stars
+    for (let i = 0; i < starCount; i++) {
+      // Random position on the inside of the cube
+      const x = (Math.random() - 0.5) * size * 0.95;
+      const y = (Math.random() - 0.5) * size * 0.95;
+      const z = (Math.random() - 0.5) * size * 0.95;
+
+      starPositions.push(x, y, z);
+
+      // Random size for the stars
+      starSizes.push(Math.random() * 2 + 1);
+    }
+
+    starGeometry.setAttribute(
+      "position",
+      new Float32BufferAttribute(starPositions, 3)
+    );
+    starGeometry.setAttribute("size", new Float32BufferAttribute(starSizes, 1));
+
+    // Create a material for the stars
+    const starMaterial = new PointsMaterial({
+      color: 0xffffff,
+      size: 2,
+      sizeAttenuation: false,
+    });
+
+    // Create the star points
+    const stars = new Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    return () => {
+      scene.remove(skybox);
+      scene.remove(stars);
+      skyboxGeometry.dispose();
+      skyboxMaterial.dispose();
+      starGeometry.dispose();
+      starMaterial.dispose();
+    };
+  }, [scene]);
+
+  return null;
+};
 
 const GameScene = () => {
-  const { scene } = useThree();
+  const { scene, camera } = useThree();
   const { switchWeapon, updateFPS } = useGameState();
   const clock = useRef(new Clock());
   const frameCount = useRef(0);
@@ -115,36 +188,11 @@ const GameScene = () => {
     };
   }, [scene]);
 
-  // Add boundary visualization
-  useEffect(() => {
-    // Create a large cube to represent the boundary
-    const boundaryGeometry = new BoxGeometry(
-      BOUNDARY_SIZE * 2,
-      BOUNDARY_SIZE * 2,
-      BOUNDARY_SIZE * 2
-    );
-
-    // Create a material that's visible from the inside
-    const boundaryMaterial = new MeshBasicMaterial({
-      color: 0x0088ff,
-      side: BackSide,
-      transparent: true,
-      opacity: 0.05,
-      wireframe: true,
-    });
-
-    const boundaryMesh = new Mesh(boundaryGeometry, boundaryMaterial);
-    scene.add(boundaryMesh);
-
-    return () => {
-      scene.remove(boundaryMesh);
-      boundaryGeometry.dispose();
-      boundaryMaterial.dispose();
-    };
-  }, [scene]);
-
   return (
     <>
+      {/* Fixed skybox with stars */}
+      <Skybox />
+
       <Physics
         gravity={[0, 0, 0]}
         defaultContactMaterial={{
@@ -158,7 +206,7 @@ const GameScene = () => {
         broadphase="SAP"
         stepSize={1 / 120}
       >
-        <Spacecraft ref={spacecraftRef} />
+        <Spacecraft ref={spacecraftRef} position={[0, 0, 0]} />
         <SolarSystem />
       </Physics>
     </>

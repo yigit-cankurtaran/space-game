@@ -1,11 +1,10 @@
 import { useRef, useState, useEffect, forwardRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useBox } from "@react-three/cannon";
-import { Vector3, Group, Object3D, Matrix4 } from "three";
+import { Vector3, Group } from "three";
 import { useGameState } from "../utils/GameContext";
 import { MachineGun } from "../weapons/MachineGun";
 import { Rocket } from "../weapons/Rocket";
-import Crosshair3D from "../components/Crosshair3D";
 
 // Add a global declaration for our keyMap
 declare global {
@@ -16,11 +15,6 @@ declare global {
 
 // Constants
 const G_FORCE = 9.8; // 1g acceleration in m/s²
-const BOUNDARY_SIZE = 500; // Size of the playable area
-
-// Physics settings to reduce jitter
-const PHYSICS_SUBSTEPS = 4; // More substeps for smoother physics
-const PHYSICS_PRECISION = 0.0001; // Higher precision for calculations
 
 interface SpacecraftProps {
   position?: [number, number, number];
@@ -40,13 +34,11 @@ const Spacecraft = forwardRef<Group, SpacecraftProps>(
     const [physicsRef, api] = useBox(() => ({
       mass: 500,
       position,
-      linearDamping: 0, // No damping in space
+      linearDamping: 0.05, // Add a tiny bit of damping to reduce oscillations
       angularDamping: 0.5, // Some damping for rotation to make control easier
       type: "Dynamic",
       allowSleep: false, // Never let the physics body sleep
       fixedStep: 1 / 120, // Higher frequency physics updates
-      quatNormalizeFast: false, // Use precise quaternion normalization
-      quatNormalizeSkip: 1, // Normalize quaternions every frame
     }));
 
     // Combine refs
@@ -80,40 +72,20 @@ const Spacecraft = forwardRef<Group, SpacecraftProps>(
         updateVelocity(newVelocity);
       });
 
-      // Check boundaries and prevent going past the stars
-      api.position.subscribe((p: [number, number, number]) => {
-        const pos = new Vector3(p[0], p[1], p[2]);
-
-        // Check if spacecraft is outside the boundary
-        if (
-          Math.abs(pos.x) > BOUNDARY_SIZE ||
-          Math.abs(pos.y) > BOUNDARY_SIZE ||
-          Math.abs(pos.z) > BOUNDARY_SIZE
-        ) {
-          // Clamp position to boundary
-          pos.x = Math.max(-BOUNDARY_SIZE, Math.min(BOUNDARY_SIZE, pos.x));
-          pos.y = Math.max(-BOUNDARY_SIZE, Math.min(BOUNDARY_SIZE, pos.y));
-          pos.z = Math.max(-BOUNDARY_SIZE, Math.min(BOUNDARY_SIZE, pos.z));
-
-          // Reset position and apply a small opposing force
-          api.position.set(pos.x, pos.y, pos.z);
-
-          // Get current velocity and reverse it slightly to create a "bounce" effect
-          api.velocity.subscribe((v: [number, number, number]) => {
-            const vel = new Vector3(v[0], v[1], v[2]);
-            vel.multiplyScalar(-0.5); // Reverse and reduce velocity
-            api.velocity.set(vel.x, vel.y, vel.z);
-          });
-        }
-      });
-
       api.rotation.subscribe((r: [number, number, number]) => {
         setRotation([r[0], r[1], r[2]]);
       });
+
+      // Update internal ref for proper ref forwarding
+      if (physicsRef.current && internalRef.current) {
+        internalRef.current.position.copy(physicsRef.current.position);
+        internalRef.current.quaternion.copy(physicsRef.current.quaternion);
+      }
     });
 
-    // Handle keyboard controls and camera positioning
-    useFrame(({ camera }, delta) => {
+    // Handle keyboard controls
+    useFrame((state, delta) => {
+      const { camera } = state;
       const keys = {
         w: false,
         a: false,
@@ -166,33 +138,18 @@ const Spacecraft = forwardRef<Group, SpacecraftProps>(
       // Update firing state
       setIsFiring(keys[" "]);
 
-      // Update camera position to follow the spacecraft
+      // DIRECT CAMERA CONTROL - SUPER SIMPLE
       if (physicsRef.current) {
-        // Create a matrix from the spacecraft's world transform
-        const spacecraftMatrix = new Matrix4();
-        physicsRef.current.updateMatrixWorld();
-        spacecraftMatrix.copy(physicsRef.current.matrixWorld);
+        const pos = physicsRef.current.position;
+        const rot = physicsRef.current.rotation;
 
-        // Define camera offset in spacecraft's local space (behind and above)
-        const localOffset = new Vector3(0, 2, 8);
+        // Position camera behind spacecraft
+        camera.position.x = pos.x - Math.sin(rot.y) * 8;
+        camera.position.y = pos.y + 2;
+        camera.position.z = pos.z - Math.cos(rot.y) * 8;
 
-        // Transform local offset to world space using the spacecraft's matrix
-        const worldOffset = localOffset.clone().applyMatrix4(spacecraftMatrix);
-
-        // Get spacecraft position in world space
-        const spacecraftWorldPos = new Vector3();
-        spacecraftWorldPos.setFromMatrixPosition(spacecraftMatrix);
-
-        // Apply smoothing to camera movement to reduce jitter
-        // Lerp between current camera position and target position
-        camera.position.lerp(worldOffset, 0.1);
-
-        // Create a smoothed look target
-        const lookTarget = new Vector3();
-        lookTarget.copy(spacecraftWorldPos);
-
-        // Look at the spacecraft with a slight delay to smooth camera rotation
-        camera.lookAt(lookTarget);
+        // Look at spacecraft
+        camera.lookAt(pos);
       }
     });
 

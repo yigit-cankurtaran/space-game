@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useRef, useEffect } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 
 interface PlanetData {
@@ -142,6 +142,7 @@ const Planet = ({
 
 const SolarSystem = () => {
   const systemRef = useRef(null);
+  const { scene } = useThree();
 
   // Store orbit angles for each planet
   const orbitAngles = useRef(planets.map(() => Math.random() * Math.PI * 2));
@@ -156,8 +157,10 @@ const SolarSystem = () => {
     });
   });
 
+  // Position the solar system at the center of the world
+  // and make it very large to create a sense of scale
   return (
-    <group ref={systemRef} scale={[5, 5, 5]}>
+    <group ref={systemRef} scale={[5, 5, 5]} position={[0, 0, 0]}>
       {planets.map((planet, i) => (
         <Planet
           key={planet.name}
